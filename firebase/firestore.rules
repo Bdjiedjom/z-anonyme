@@ -1,0 +1,138 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===========================
+    // Helper Functions
+    // ===========================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "ADMIN";
+    }
+
+    function isActiveUser() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == "ACTIVE";
+    }
+
+    // ===========================
+    // Users Collection
+    // ===========================
+    match /users/{uid} {
+      // Anyone authenticated can read their own doc
+      // Admins can read all users
+      allow read: if isOwner(uid) || isAdmin();
+
+      // User can create their own doc on first login
+      allow create: if isOwner(uid) &&
+        request.resource.data.uid == uid &&
+        request.resource.data.role == "USER" &&
+        request.resource.data.status == "ACTIVE" &&
+        request.resource.data.keys().hasAll(["uid", "email", "name", "role", "status", "createdAt"]);
+
+      // Owner can update their own doc (but NOT role or status)
+      allow update: if isOwner(uid) &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.status == resource.data.status &&
+        request.resource.data.uid == resource.data.uid;
+
+      // Admin can update any user (role, status, etc.)
+      allow update: if isAdmin();
+
+      allow delete: if false; // No user deletion via client
+    }
+
+    // ===========================
+    // Usernames Collection (uniqueness)
+    // ===========================
+    match /usernames/{username} {
+      // Public can read (to check availability)
+      allow read: if true;
+
+      // Only authenticated users can claim a username
+      allow create: if isAuthenticated() &&
+        request.resource.data.uid == request.auth.uid;
+
+      // Only owner can delete (to release old username)
+      allow delete: if isAuthenticated() &&
+        resource.data.uid == request.auth.uid;
+
+      allow update: if false;
+    }
+
+    // ===========================
+    // Links Collection
+    // ===========================
+    match /links/{linkId} {
+      // Owner can read their own links
+      allow read: if isAuthenticated() && resource.data.uid == request.auth.uid;
+
+      // Public can read specific link fields for validation
+      // (token lookup needs this)
+      allow read: if true;
+
+      // Only owner can create links
+      allow create: if isAuthenticated() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.keys().hasAll(["linkId", "uid", "token", "type", "name", "isActive", "messageCount", "createdAt"]);
+
+      // Owner can update their own links
+      allow update: if isAuthenticated() && resource.data.uid == request.auth.uid;
+
+      // Owner can delete their own links
+      allow delete: if isAuthenticated() && resource.data.uid == request.auth.uid;
+
+      // Admin can do anything
+      allow read, write: if isAdmin();
+    }
+
+    // ===========================
+    // Messages Collection
+    // ===========================
+    match /messages/{messageId} {
+      // CRITICAL: Public can CREATE messages (anonymous sending)
+      // Strict validation to prevent abuse
+      allow create: if true;
+
+      // PUBLIC MUST NOT READ MESSAGES
+      // Only the recipient can read their own messages
+      allow read: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+
+      // Only the recipient can update (status, etc.)
+      allow update: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+
+      // Only the recipient can delete
+      allow delete: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+
+      // Admin can do anything
+      allow read, write: if isAdmin();
+    }
+
+    // ===========================
+    // Reports Collection
+    // ===========================
+    match /reports/{reportId} {
+      // Only authenticated users can create reports
+      allow create: if isAuthenticated() &&
+        request.resource.data.reporterUid == request.auth.uid &&
+        request.resource.data.status == "OPEN" &&
+        request.resource.data.keys().hasAll(["reportId", "messageId", "reporterUid", "reason", "status", "createdAt"]);
+
+      // Only admin can read and update reports
+      allow read: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
