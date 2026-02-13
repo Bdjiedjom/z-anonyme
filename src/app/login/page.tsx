@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { strings } from "@/lib/strings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
@@ -30,8 +31,8 @@ export default function LoginPage() {
         <div className="flex min-h-screen items-center justify-center bg-background px-4">
             <Card className="w-full max-w-md rounded-2xl border-border/40 shadow-lg">
                 <CardHeader className="text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-foreground">
-                        <span className="text-lg font-bold text-background">Z</span>
+                    <div className="mx-auto mb-4">
+                        <Logo size={48} />
                     </div>
                     <CardTitle className="text-2xl font-bold">{strings.auth.loginTitle}</CardTitle>
                     <CardDescription className="text-base">
