@@ -32,7 +32,8 @@ export function Logo({ className, size = 32 }: LogoProps) {
             alt="Z-Anonyme Logo"
             width={size}
             height={size}
-            className={className}
+            className={`rounded-full ${className || ""}`}
+            style={{ mixBlendMode: resolvedTheme === "dark" ? "screen" : "multiply" }}
             priority
         />
     );
