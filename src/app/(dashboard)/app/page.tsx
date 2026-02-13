@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { strings } from "@/lib/strings";
 import {
     getMessages,
+    subscribeToMessages,
     updateMessageStatus,
     deleteMessage,
     bulkUpdateMessages,
@@ -55,31 +56,24 @@ export default function InboxPage() {
     const [selectedLink, setSelectedLink] = useState<string>("ALL");
     const [selected, setSelected] = useState<Set<string>>(new Set());
 
-    const fetchMessages = useCallback(async (status?: MessageStatus) => {
+    // Real-time listener for messages
+    useEffect(() => {
         if (!appUser) return;
         setLoading(true);
         setSelected(new Set());
-        try {
-            const result = await getMessages(
-                appUser.uid,
-                status || undefined,
-                undefined,
-                20
-            );
-            setMessages(result.messages);
-            setLastDoc(result.lastDoc);
-            setHasMore(result.messages.length === 20);
-        } catch {
-            toast.error(strings.common.error);
-        } finally {
-            setLoading(false);
-        }
-    }, [appUser]);
-
-    useEffect(() => {
-        const status = activeTab === "ALL" ? undefined : activeTab;
-        fetchMessages(status as MessageStatus | undefined);
-    }, [activeTab, fetchMessages]);
+        const status = activeTab === "ALL" ? undefined : (activeTab as MessageStatus);
+        const unsubscribe = subscribeToMessages(
+            appUser.uid,
+            status,
+            20,
+            (msgs) => {
+                setMessages(msgs);
+                setHasMore(msgs.length === 20);
+                setLoading(false);
+            }
+        );
+        return () => unsubscribe();
+    }, [activeTab, appUser]);
 
     const loadMore = async () => {
         if (!appUser || !lastDoc) return;

@@ -16,6 +16,7 @@ import {
     DocumentSnapshot,
     increment,
     writeBatch,
+    onSnapshot,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type {
@@ -215,6 +216,45 @@ export async function getMessages(
         messages,
         lastDoc: snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null,
     };
+}
+
+/**
+ * Subscribe to messages in real-time using onSnapshot.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToMessages(
+    uid: string,
+    status: MessageStatus | undefined,
+    pageSize: number,
+    callback: (messages: Message[]) => void
+): () => void {
+    let q = query(
+        collection(db!, "messages"),
+        where("recipientUid", "==", uid),
+        orderBy("createdAt", "desc"),
+        limit(pageSize)
+    );
+
+    if (status) {
+        q = query(
+            collection(db!, "messages"),
+            where("recipientUid", "==", uid),
+            where("status", "==", status),
+            orderBy("createdAt", "desc"),
+            limit(pageSize)
+        );
+    }
+
+    return onSnapshot(q, (snap) => {
+        const messages = snap.docs.map((d) => {
+            const data = d.data();
+            return {
+                ...data,
+                createdAt: data.createdAt?.toDate?.() || new Date(),
+            } as Message;
+        });
+        callback(messages);
+    });
 }
 
 export async function getMessage(messageId: string): Promise<Message | null> {
