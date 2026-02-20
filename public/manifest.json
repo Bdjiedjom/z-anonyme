@@ -2,7 +2,7 @@
     "name": "Z-Anonyme — Messages anonymes",
     "short_name": "Z-Anonyme",
     "description": "Recevez des messages anonymes de vos amis et collègues. 100% anonyme, 100% sécurisé.",
-    "start_url": "/",
+    "start_url": "/app",
     "display": "standalone",
     "background_color": "#0a0a0a",
     "theme_color": "#0a0a0a",

@@ -7,6 +7,8 @@ import { Navbar } from "@/components/layout/navbar";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Loader2 } from "lucide-react";
 
+import { OnboardingGuide } from "@/components/dashboard/onboarding-guide";
+
 export default function DashboardLayout({
     children,
 }: {
@@ -33,6 +35,7 @@ export default function DashboardLayout({
 
     return (
         <div className="fixed inset-0 flex flex-col bg-background overflow-hidden">
+            <OnboardingGuide />
             <Navbar />
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar variant="dashboard" />
