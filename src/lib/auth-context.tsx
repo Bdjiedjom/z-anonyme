@@ -134,11 +134,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (user) {
                 setFirebaseUser(user);
+                // Set cookie for middleware
+                document.cookie = `auth_session=true; path=/; max-age=2592000; SameSite=Lax`;
                 const userData = await fetchOrCreateUser(user);
                 setAppUser(userData);
             } else {
                 setFirebaseUser(null);
                 setAppUser(null);
+                // Remove cookie for middleware
+                document.cookie = `auth_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
             }
 
             setLoading(false);
