@@ -68,7 +68,9 @@ service cloud.firestore {
       allow delete: if isAuthenticated() &&
         resource.data.uid == request.auth.uid;
 
-      allow update: if false;
+      // Only owner can update their public profile info (name, photo)
+      allow update: if isAuthenticated() &&
+        resource.data.uid == request.auth.uid;
     }
 
     // ===========================
